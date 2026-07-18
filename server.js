@@ -512,6 +512,25 @@ app.get('/admin/:storeId', async (req, res) => {
   select:focus, input:focus{ outline:none; border-color:var(--pink); }
   .check-row{ display:flex; align-items:center; gap:10px; margin-top:10px; }
   .check-row input{ width:auto; }
+  .switch-wrap{
+    display:flex; align-items:center; gap:10px; cursor:pointer;
+    background:var(--bg-card); border:2px solid var(--ink); box-shadow:var(--sh-sm);
+    border-radius:999px; padding:10px 16px 10px 10px; flex:none; width:fit-content;
+  }
+  .switch-wrap input{ display:none; }
+  .switch-track{
+    width:40px; height:22px; border-radius:999px; background:#e3ddc9;
+    border:2px solid var(--ink);
+    position:relative; transition:background .2s ease; flex:none;
+  }
+  .switch-track::after{
+    content:''; position:absolute; top:1px; left:1px;
+    width:16px; height:16px; border-radius:50%; background:var(--ink);
+    transition:transform .2s ease;
+  }
+  .switch-wrap input:checked + .switch-track{ background:var(--mint); }
+  .switch-wrap input:checked + .switch-track::after{ transform:translateX(18px); }
+  .switch-label{ font-size:0.88rem; font-weight:700; white-space:nowrap; }
   button{ margin-top:18px; background:var(--pink); color:var(--ink); border:2px solid var(--ink); padding:12px 20px; border-radius:999px; font-weight:700; cursor:pointer; box-shadow:var(--sh-sm); transition:transform .1s ease, box-shadow .1s ease; font-family:'Space Grotesk', sans-serif; }
   button:hover{ transform:translate(-1px,-1px); box-shadow:5px 5px 0px 0px var(--ink); }
   button:active{ transform:translate(2px,2px); box-shadow:0px 0px 0px 0px var(--ink); }
@@ -567,10 +586,11 @@ app.get('/admin/:storeId', async (req, res) => {
     ${bannerPago}
 
     <form class="card" method="POST" action="/admin/${storeId}/config">
-      <div class="check-row">
-        <input type="checkbox" id="activo" name="activo" ${tienda.activo ? 'checked' : ''} />
-        <label for="activo" style="margin:0;">Widget activo</label>
-      </div>
+      <label class="switch-wrap">
+        <input type="checkbox" name="activo" ${tienda.activo ? 'checked' : ''} onchange="this.nextElementSibling.nextElementSibling.textContent = this.checked ? 'Widget activo' : 'Widget desactivado'" />
+        <span class="switch-track"></span>
+        <span class="switch-label">${tienda.activo ? 'Widget activo' : 'Widget desactivado'}</span>
+      </label>
       <label for="posicion">Posición</label>
       <select id="posicion" name="posicion">
         <option value="bottom-left" ${tienda.posicion === 'bottom-left' ? 'selected' : ''}>Abajo izquierda</option>
