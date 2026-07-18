@@ -30,7 +30,7 @@ const {
   PORT = 3000,
 } = process.env;
 
-const USER_AGENT = `PruebaSocial (${APP_BASE_URL})`;
+const USER_AGENT = `PopupVentas (${APP_BASE_URL})`;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ---------------------------------------------------------------------
@@ -185,7 +185,7 @@ app.get('/callback', async (req, res) => {
     const store_id = String(storeIdRaw); // TN lo manda como número, no string
 
     await guardarTienda(store_id, access_token, scope);
-    console.log(`✅ Tienda ${store_id} instaló Prueba Social.`);
+    console.log(`✅ Tienda ${store_id} instaló Popup Ventas.`);
     agregarTiendaYSetearCookie(req, res, store_id);
     res.redirect(`/admin/${store_id}`);
   } catch (err) {
@@ -195,7 +195,7 @@ app.get('/callback', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('Prueba Social backend funcionando ✅');
+  res.send('Popup Ventas backend funcionando ✅');
 });
 
 // ---------------------------------------------------------------------
@@ -354,14 +354,14 @@ app.get('/widget.js', (req, res) => {
 app.get('/admin', async (req, res) => {
   const tiendas = leerTiendasDeCookie(req);
   if (tiendas.length === 0) {
-    return res.status(401).send('No pudimos identificar tu tienda. Volvé a abrir la app desde el panel de TiendaNegocio (Aplicaciones → Prueba Social).');
+    return res.status(401).send('No pudimos identificar tu tienda. Volvé a abrir la app desde el panel de TiendaNegocio (Aplicaciones → Popup Ventas).');
   }
   if (tiendas.length === 1) return res.redirect(`/admin/${tiendas[0]}`);
 
   const filas = tiendas.map((id) => `<a class="fila-tienda" href="/admin/${id}">Tienda ${id}</a>`).join('');
   res.send(`<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Prueba Social</title>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Popup Ventas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -373,7 +373,7 @@ app.get('/admin', async (req, res) => {
 </style></head>
 <body>
   <h1>🛒 Elegí tu tienda</h1>
-  <p>Seleccioná la tienda para configurar Prueba Social.</p>
+  <p>Seleccioná la tienda para configurar Popup Ventas.</p>
   ${filas}
 </body>
 </html>`);
@@ -398,7 +398,7 @@ app.get('/admin/:storeId', async (req, res) => {
   const storeId = req.params.storeId;
   const tiendasPermitidas = leerTiendasDeCookie(req);
   if (!tiendasPermitidas.includes(storeId)) {
-    return res.status(403).send('No autorizado. Abrí la app desde el panel de TiendaNegocio (Aplicaciones → Prueba Social).');
+    return res.status(403).send('No autorizado. Abrí la app desde el panel de TiendaNegocio (Aplicaciones → Popup Ventas).');
   }
   const tienda = await leerTienda(storeId);
   if (!tienda) return res.status(404).send('Tienda no encontrada o app no instalada.');
@@ -422,7 +422,7 @@ app.get('/admin/:storeId', async (req, res) => {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prueba Social — Panel</title>
+<title>Popup Ventas — Panel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -469,7 +469,7 @@ app.get('/admin/:storeId', async (req, res) => {
 </head>
 <body>
   <div class="wrap">
-    <span class="eyebrow">Prueba Social · Tienda ${storeId}</span>
+    <span class="eyebrow">Popup Ventas · Tienda ${storeId}</span>
     <h1>Notificaciones de compra</h1>
     <p class="subtitle">Popup que muestra compras recientes a tus visitantes para generar confianza.</p>
     ${bannerPago}
@@ -513,5 +513,5 @@ app.get('/admin/:storeId', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor Prueba Social corriendo en puerto ${PORT}`);
+  console.log(`Servidor Popup Ventas corriendo en puerto ${PORT}`);
 });
