@@ -394,6 +394,68 @@ app.post('/admin/:storeId/config', async (req, res) => {
   res.redirect(`/admin/${storeId}`);
 });
 
+const APPS_CATALOGO = [
+  {
+    nombre: 'Ruleta WhatsApp',
+    descripcion: 'Ruleta de premios para captar leads y dar cupones a cambio de un giro.',
+    estado: 'activa',
+    icono: '🎡',
+    url: 'https://hacecrecertutienda.com',
+  },
+  {
+    nombre: 'Aviso de Stock',
+    descripcion: 'Avisa por email a tus clientes cuando un producto agotado vuelve a tener stock.',
+    estado: 'activa',
+    icono: '📦',
+    url: 'https://hacecrecertutienda.com',
+  },
+  {
+    nombre: 'Barra de Envío Gratis',
+    descripcion: 'Barra que motiva a sumar productos al carrito para llegar al envío gratis.',
+    estado: 'activa',
+    icono: '🚚',
+    url: 'https://hacecrecertutienda.com',
+  },
+  {
+    nombre: 'Raspadita',
+    descripcion: 'Raspadita de premios para captar leads y dar cupones a cambio de jugar.',
+    estado: 'activa',
+    icono: '🎟️',
+    url: 'https://hacecrecertutienda.com',
+  },
+  {
+    nombre: 'Caja Sorpresa',
+    descripcion: 'Caja sorpresa de premios para captar leads y dar cupones a cambio de abrirla.',
+    estado: 'activa',
+    icono: '🎁',
+    url: 'https://hacecrecertutienda.com',
+  },
+];
+
+function generarAppsHTML() {
+  const cards = APPS_CATALOGO.map((a) => {
+    const activa = a.estado === 'activa';
+    const badge = activa
+      ? '<span class="app-badge app-badge--activa">Activa</span>'
+      : '<span class="app-badge app-badge--proxima">Próximamente</span>';
+    const contenido = `
+      <div class="app-icon">${a.icono || '🧩'}</div>
+      <div class="app-info">
+        <div class="app-top"><span class="app-name">${a.nombre}</span>${badge}</div>
+        <p class="app-desc">${a.descripcion}</p>
+      </div>`;
+    return activa && a.url
+      ? `<a class="app-card app-card--link" href="${a.url}">${contenido}</a>`
+      : `<div class="app-card">${contenido}</div>`;
+  }).join('');
+
+  return `
+      <div class="section-label">Más herramientas para tu tienda</div>
+      <div class="apps-grid">
+        ${cards}
+      </div>`;
+}
+
 app.get('/admin/:storeId', async (req, res) => {
   const storeId = req.params.storeId;
   const tiendasPermitidas = leerTiendasDeCookie(req);
@@ -431,6 +493,7 @@ app.get('/admin/:storeId', async (req, res) => {
     --ink:#111111; --ink-dim:#5b5648;
     --pink:#ff3d81; --coral:#ff6b5e; --mint:#3ddc97; --canary:#ffd23f;
     --sh-sm:4px 4px 0px 0px #111111;
+    --sh-md:6px 6px 0px 0px #111111;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
   body{ background:var(--bg); color:var(--ink); font-family:'Space Grotesk', sans-serif; font-weight:500; padding:40px 20px 80px; }
@@ -465,6 +528,35 @@ app.get('/admin/:storeId', async (req, res) => {
   .admin-footer .brand a{ color:var(--ink); font-weight:700; text-decoration:underline; }
   .admin-footer .soporte{ display:inline-flex; align-items:center; gap:6px; background:var(--mint); color:var(--ink); border:2px solid var(--ink); padding:8px 16px; border-radius:999px; font-weight:700; font-size:0.82rem; box-shadow:var(--sh-sm); text-decoration:none; transition:transform .1s ease; }
   .admin-footer .soporte:hover{ transform:translate(-1px,-1px); }
+
+  .section-label{
+    font-family:'Space Mono', monospace; text-transform:uppercase;
+    letter-spacing:0.08em; font-size:0.72rem; color:var(--pink); font-weight:700;
+    margin:32px 0 16px;
+  }
+  .apps-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:14px; }
+  .app-card{
+    display:flex; gap:14px; align-items:flex-start;
+    background:var(--bg-card); border:2px solid var(--ink); box-shadow:var(--sh-sm);
+    border-radius:16px; padding:18px 20px; text-decoration:none; color:var(--ink);
+  }
+  .app-card--link{ cursor:pointer; transition:transform .12s ease, box-shadow .12s ease; }
+  .app-card--link:hover{ transform:translate(-2px,-2px); box-shadow:var(--sh-md); }
+  .app-icon{ font-size:1.6rem; line-height:1; flex:none; margin-top:2px; }
+  .app-info{ flex:1; min-width:0; }
+  .app-top{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px; }
+  .app-name{ font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:1rem; }
+  .app-desc{ color:var(--ink-dim); font-size:0.85rem; line-height:1.4; font-weight:500; }
+  .app-badge{
+    font-family:'Space Mono', monospace; font-size:0.62rem; text-transform:uppercase;
+    letter-spacing:0.06em; padding:3px 9px; border-radius:999px; flex:none;
+    border:1.5px solid var(--ink); font-weight:700;
+  }
+  .app-badge--activa{ background:var(--mint); color:var(--ink); }
+  .app-badge--proxima{ background:var(--canary); color:var(--ink); }
+  @media (max-width:640px){
+    .apps-grid{ grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
@@ -503,6 +595,8 @@ app.get('/admin/:storeId', async (req, res) => {
       <p class="install-text">Pegá esto UNA VEZ en el código personalizado de tu tema (antes de <code>&lt;/body&gt;</code>):<br><br>
       <code>&lt;script src="${APP_BASE_URL}/widget.js?store=${storeId}" defer&gt;&lt;/script&gt;</code></p>
     </div>
+    ${generarAppsHTML()}
+
     <div class="admin-footer">
       <span class="brand">Una app de <a href="https://hacecrecertutienda.com" target="_blank" rel="noopener">hacecrecertutienda.com</a></span>
       <a class="soporte" href="https://wa.me/5490000000000" target="_blank" rel="noopener">💬 Soporte por WhatsApp</a>
