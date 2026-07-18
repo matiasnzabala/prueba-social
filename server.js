@@ -302,21 +302,21 @@ app.get('/widget.js', (req, res) => {
     var contenedor = document.createElement('div');
     contenedor.id = 'prueba-social-widget';
     contenedor.style.cssText = 'position:fixed;' + posicionCSS(pos) + 'z-index:999999;' +
-      'background:#fff;border-radius:12px;padding:14px 16px;' +
-      'box-shadow:0 8px 24px rgba(0,0,0,0.15);font-family:sans-serif;max-width:300px;' +
-      'display:flex;gap:10px;align-items:center;opacity:0;transition:opacity 0.4s;';
+      'background:#fff;border-radius:16px;padding:18px 22px;' +
+      'box-shadow:0 12px 32px rgba(0,0,0,0.18);font-family:sans-serif;max-width:380px;min-width:280px;' +
+      'display:flex;gap:14px;align-items:center;opacity:0;transition:opacity 0.4s;';
     document.body.appendChild(contenedor);
     return contenedor;
   }
 
   function render(contenedor, pedido) {
     contenedor.innerHTML =
-      '<div style="width:36px;height:36px;border-radius:50%;background:#E8632C;color:#fff;' +
+      '<div style="width:48px;height:48px;border-radius:50%;background:#E8632C;color:#fff;font-size:1.3rem;' +
         'display:flex;align-items:center;justify-content:center;font-weight:700;flex:none;">🛒</div>' +
       '<div style="min-width:0;">' +
-        '<p style="margin:0;font-size:0.85rem;color:#222;font-weight:600;">' + pedido.cliente_nombre + ' compró</p>' +
-        '<p style="margin:0;font-size:0.82rem;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + pedido.producto_nombre + '</p>' +
-        '<p style="margin:2px 0 0;font-size:0.72rem;color:#999;">' + tiempoRelativo(pedido.creado_en) + '</p>' +
+        '<p style="margin:0;font-size:1.02rem;color:#222;font-weight:700;">' + pedido.cliente_nombre + ' compró</p>' +
+        '<p style="margin:2px 0 0;font-size:0.95rem;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + pedido.producto_nombre + '</p>' +
+        '<p style="margin:4px 0 0;font-size:0.82rem;color:#999;">' + tiempoRelativo(pedido.creado_en) + '</p>' +
       '</div>';
     contenedor.style.opacity = '1';
   }
