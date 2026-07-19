@@ -261,6 +261,33 @@ app.get('/pedidos/:storeId', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------
+// Estadísticas — el widget manda un evento 'vista' cuando arranca a
+// mostrar popups (una vez por carga de página, fire-and-forget).
+// ---------------------------------------------------------------------
+app.options('/track', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.status(204).end();
+});
+
+app.post('/track', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.status(204).end();
+  const { storeId, tipo } = req.body || {};
+  if (!storeId || tipo !== 'vista') return;
+  const { error } = await supabase.from('social_eventos').insert({ store_id: storeId, tipo });
+  if (error) console.error('Error guardando evento:', error);
+});
+
+async function contarVistas(storeId) {
+  const { count, error } = await supabase
+    .from('social_eventos').select('*', { count: 'exact', head: true }).eq('store_id', storeId);
+  if (error) { console.error('Error contando vistas:', error); return 0; }
+  return count || 0;
+}
+
+// ---------------------------------------------------------------------
 // Widget global — popup esquina, rota pedidos recientes.
 // ---------------------------------------------------------------------
 app.get('/widget.js', (req, res) => {
@@ -280,6 +307,14 @@ app.get('/widget.js', (req, res) => {
   if (!storeId) return;
 
   var BASE = '${APP_BASE_URL}';
+  function track(tipo) {
+    try {
+      fetch(BASE + '/track', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId: storeId, tipo: tipo }), keepalive: true,
+      });
+    } catch (e) {}
+  }
 
   function posicionCSS(pos) {
     if (pos === 'bottom-right') return 'bottom:20px;right:20px;';
@@ -329,6 +364,7 @@ app.get('/widget.js', (req, res) => {
         .then(function (r) { return r.json(); })
         .then(function (pedidos) {
           if (!pedidos || !pedidos.length) return;
+          track('vista');
           var contenedor = crearContenedor(config.posicion);
           var i = 0;
           function mostrarSiguiente() {
@@ -466,6 +502,7 @@ app.get('/admin/:storeId', async (req, res) => {
   if (!tienda) return res.status(404).send('Tienda no encontrada o app no instalada.');
 
   const pedidos = await leerPedidosRecientes(storeId, 10);
+  const vistas = await contarVistas(storeId);
   const filasPedidos = pedidos
     .map((p) => `<tr><td>${p.cliente_nombre}</td><td>${p.producto_nombre}</td><td>${new Date(p.creado_en).toLocaleString('es-AR')}</td></tr>`)
     .join('') || '<tr><td colspan="3" class="vacio">Todavía no hay pedidos en cache. Esperá al próximo sync.</td></tr>';
@@ -583,6 +620,7 @@ app.get('/admin/:storeId', async (req, res) => {
     <span class="eyebrow">Popup Ventas · Tienda ${storeId}</span>
     <h1>Notificaciones de compra</h1>
     <p class="subtitle">Popup que muestra compras recientes a tus visitantes para generar confianza.</p>
+    <p class="subtitle">👁️ ${vistas} vista${vistas === 1 ? '' : 's'} del popup</p>
     ${bannerPago}
 
     <form class="card" method="POST" action="/admin/${storeId}/config">
