@@ -559,6 +559,13 @@ app.get('/admin/:storeId', async (req, res) => {
   .eyebrow{ font-family:'Space Mono', monospace; text-transform:uppercase; letter-spacing:0.1em; font-size:0.7rem; color:var(--pink); font-weight:700; display:block; margin-bottom:10px; }
   h1{ font-family:'Archivo Black', sans-serif; font-weight:400; text-transform:uppercase; font-size:1.5rem; margin-bottom:8px; }
   .subtitle{ color:var(--ink-dim); font-size:0.95rem; margin-bottom:28px; max-width:60ch; font-weight:500; }
+  .status-hero{ background:var(--bg-card); border:2px solid var(--ink); border-radius:16px; box-shadow:var(--sh-sm); padding:22px 24px; margin-bottom:8px; }
+  .status-hero-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+  .status-hero-stats-label{ font-family:'Space Mono', monospace; text-transform:uppercase; letter-spacing:0.08em; font-size:0.72rem; font-weight:700; color:var(--ink-dim); margin-top:20px; }
+  .status-hero-stats{ display:flex; gap:12px; margin-top:8px; flex-wrap:wrap; }
+  .stat-tile{ flex:1; min-width:100px; background:var(--bg); border:2px solid var(--ink); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:2px; }
+  .stat-num{ font-family:'Archivo Black', sans-serif; font-size:1.6rem; line-height:1; }
+  .stat-label{ font-family:'Space Mono', monospace; text-transform:uppercase; letter-spacing:0.06em; font-size:0.68rem; color:var(--ink-dim); font-weight:700; }
   .banner{ padding:14px 18px; border-radius:14px; margin-bottom:24px; font-size:0.88rem; border:2px solid var(--ink); box-shadow:var(--sh-sm); font-weight:600; }
   .banner a{ color:inherit; font-weight:700; text-decoration:underline; }
   .banner-ok{ background:var(--mint); }
@@ -589,9 +596,16 @@ app.get('/admin/:storeId', async (req, res) => {
   .switch-wrap input:checked + .switch-track{ background:var(--mint); }
   .switch-wrap input:checked + .switch-track::after{ transform:translateX(18px); }
   .switch-label{ font-size:0.88rem; font-weight:700; white-space:nowrap; }
-  button{ margin-top:18px; background:var(--pink); color:var(--ink); border:2px solid var(--ink); padding:12px 20px; border-radius:999px; font-weight:700; cursor:pointer; box-shadow:var(--sh-sm); transition:transform .1s ease, box-shadow .1s ease; font-family:'Space Grotesk', sans-serif; }
-  button:hover{ transform:translate(-1px,-1px); box-shadow:5px 5px 0px 0px var(--ink); }
-  button:active{ transform:translate(2px,2px); box-shadow:0px 0px 0px 0px var(--ink); }
+  .actions{ margin-top:32px; }
+  button.submit{
+    width:100%;
+    background:var(--pink); color:var(--ink); border:2px solid var(--ink);
+    padding:15px 28px; border-radius:8px; font-weight:700; font-size:1rem;
+    cursor:pointer; transition:transform .1s ease, box-shadow .1s ease;
+    font-family:'Space Grotesk', sans-serif; box-shadow:var(--sh-sm);
+  }
+  button.submit:hover{ transform:translate(-1px,-1px); box-shadow:5px 5px 0px 0px var(--ink); }
+  button.submit:active{ transform:translate(2px,2px); box-shadow:0px 0px 0px 0px var(--ink); }
   table{ width:100%; border-collapse:collapse; background:var(--bg-card); border:2px solid var(--ink); box-shadow:var(--sh-sm); border-radius:16px; overflow:hidden; }
   th{ text-align:left; font-family:'Space Mono', monospace; text-transform:uppercase; font-size:0.7rem; letter-spacing:0.06em; color:var(--ink-dim); font-weight:700; padding:14px 16px; border-bottom:2px solid var(--ink); }
   td{ padding:14px 16px; border-bottom:1px solid #e3ddc9; font-size:0.9rem; }
@@ -638,30 +652,44 @@ app.get('/admin/:storeId', async (req, res) => {
 </head>
 <body>
   <div class="wrap">
-    <span class="eyebrow">Popup Ventas · Tienda ${storeId}</span>
-    <h1>Notificaciones de compra</h1>
-    <p class="subtitle">Popup que muestra compras recientes a tus visitantes para generar confianza.</p>
-    <p class="subtitle">👁️ ${vistas} vista${vistas === 1 ? '' : 's'} del popup</p>
-    ${bannerPago}
+    <form method="POST" action="/admin/${storeId}/config">
+      <div class="status-hero">
+        <div class="status-hero-top">
+          <div>
+            <span class="eyebrow">Popup Ventas · Tienda ${storeId}</span>
+            <h1>Notificaciones de compra</h1>
+          </div>
+          <label class="switch-wrap">
+            <input type="checkbox" name="activo" ${tienda.activo ? 'checked' : ''} onchange="actualizarEstado(this)" />
+            <span class="switch-track"></span>
+            <span class="switch-label" id="switch-label-txt">${tienda.activo ? 'Widget activo' : 'Widget desactivado'}</span>
+          </label>
+        </div>
+        <div class="status-hero-stats-label">Estadísticas</div>
+        <div class="status-hero-stats">
+          <div class="stat-tile"><span class="stat-num">${vistas}</span><span class="stat-label">Vistas</span></div>
+          <div class="stat-tile"><span class="stat-num">${pedidos.length}</span><span class="stat-label">Pedidos en cache</span></div>
+        </div>
+      </div>
+      <p class="subtitle">Popup que muestra compras recientes a tus visitantes para generar confianza.</p>
+      ${bannerPago}
 
-    <form class="card" method="POST" action="/admin/${storeId}/config">
-      <label class="switch-wrap">
-        <input type="checkbox" name="activo" ${tienda.activo ? 'checked' : ''} onchange="this.nextElementSibling.nextElementSibling.textContent = this.checked ? 'Widget activo' : 'Widget desactivado'" />
-        <span class="switch-track"></span>
-        <span class="switch-label">${tienda.activo ? 'Widget activo' : 'Widget desactivado'}</span>
-      </label>
-      <label for="posicion">Posición</label>
-      <select id="posicion" name="posicion">
-        <option value="bottom-left" ${tienda.posicion === 'bottom-left' ? 'selected' : ''}>Abajo izquierda</option>
-        <option value="bottom-right" ${tienda.posicion === 'bottom-right' ? 'selected' : ''}>Abajo derecha</option>
-        <option value="top-left" ${tienda.posicion === 'top-left' ? 'selected' : ''}>Arriba izquierda</option>
-        <option value="top-right" ${tienda.posicion === 'top-right' ? 'selected' : ''}>Arriba derecha</option>
-      </select>
-      <label for="velocidad_seg">Rotar cada (segundos)</label>
-      <input type="number" id="velocidad_seg" name="velocidad_seg" min="2" max="60" value="${tienda.velocidad_seg || 5}" />
-      <label for="cantidad_mostrar">Cantidad de pedidos a rotar</label>
-      <input type="number" id="cantidad_mostrar" name="cantidad_mostrar" min="1" max="50" value="${tienda.cantidad_mostrar || 20}" />
-      <button type="submit">Guardar</button>
+      <div class="card">
+        <label for="posicion">Posición</label>
+        <select id="posicion" name="posicion">
+          <option value="bottom-left" ${tienda.posicion === 'bottom-left' ? 'selected' : ''}>Abajo izquierda</option>
+          <option value="bottom-right" ${tienda.posicion === 'bottom-right' ? 'selected' : ''}>Abajo derecha</option>
+          <option value="top-left" ${tienda.posicion === 'top-left' ? 'selected' : ''}>Arriba izquierda</option>
+          <option value="top-right" ${tienda.posicion === 'top-right' ? 'selected' : ''}>Arriba derecha</option>
+        </select>
+        <label for="velocidad_seg">Rotar cada (segundos)</label>
+        <input type="number" id="velocidad_seg" name="velocidad_seg" min="2" max="60" value="${tienda.velocidad_seg || 5}" />
+        <label for="cantidad_mostrar">Cantidad de pedidos a rotar</label>
+        <input type="number" id="cantidad_mostrar" name="cantidad_mostrar" min="1" max="50" value="${tienda.cantidad_mostrar || 20}" />
+        <div class="actions">
+          <button type="submit" class="submit">Guardar</button>
+        </div>
+      </div>
     </form>
 
     <h1 style="font-size:1.1rem;margin-bottom:16px;">Últimos pedidos en cache</h1>
@@ -681,6 +709,11 @@ app.get('/admin/:storeId', async (req, res) => {
       <a class="soporte" href="https://wa.me/5490000000000" target="_blank" rel="noopener">💬 Soporte por WhatsApp</a>
     </div>
   </div>
+  <script>
+    function actualizarEstado(checkbox) {
+      document.getElementById('switch-label-txt').textContent = checkbox.checked ? 'Widget activo' : 'Widget desactivado';
+    }
+  </script>
 </body>
 </html>`);
 });
