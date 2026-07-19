@@ -466,6 +466,27 @@ const APPS_CATALOGO = [
     icono: '🎁',
     url: 'https://hacecrecertutienda.com',
   },
+  {
+    nombre: 'Popup de Salida',
+    descripcion: 'Popup que detecta cuándo el visitante se va y le ofrece un cupón para que no abandone la tienda.',
+    estado: 'activa',
+    icono: '👋',
+    url: 'https://hacecrecertutienda.com',
+  },
+  {
+    nombre: 'Venta Inteligente',
+    descripcion: 'Cross-sell y upsell automáticos para subir el ticket promedio.',
+    estado: 'activa',
+    icono: '🧠',
+    url: 'https://hacecrecertutienda.com',
+  },
+  {
+    nombre: 'Cuenta Regresiva',
+    descripcion: 'Timer de urgencia para ofertas, que motiva a comprar antes de que se acabe el tiempo.',
+    estado: 'activa',
+    icono: '⏳',
+    url: 'https://hacecrecertutienda.com',
+  },
 ];
 
 function generarAppsHTML() {
