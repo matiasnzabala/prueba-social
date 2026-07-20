@@ -487,6 +487,13 @@ const APPS_CATALOGO = [
     icono: '⏳',
     url: 'https://hacecrecertutienda.com',
   },
+  {
+    nombre: 'Tragamonedas',
+    descripcion: 'Máquina tragamonedas de premios para captar leads y dar cupones al instante.',
+    estado: 'activa',
+    icono: '🎰',
+    url: 'https://hacecrecertutienda.com',
+  },
 ];
 
 function generarAppsHTML() {
