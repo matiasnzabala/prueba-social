@@ -72,8 +72,18 @@ function agregarTiendaYSetearCookie(req, res, nuevoStoreId) {
 // Tiendas instaladas
 // ---------------------------------------------------------------------
 async function guardarTienda(storeId, accessToken, scope) {
+  const existente = await leerTienda(storeId);
+  if (existente) {
+    // Reinstalación / re-callback de OAuth: solo refrescamos credenciales,
+    // sin pisar pago/trial/config que ya tenía la tienda.
+    const { error } = await supabase.from('social_tiendas')
+      .update({ access_token: accessToken, scope })
+      .eq('store_id', storeId);
+    if (error) console.error('Error actualizando tienda existente:', error);
+    return;
+  }
   const trialEndsAt = new Date(Date.now() + Number(TRIAL_DIAS) * 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await supabase.from('social_tiendas').upsert({
+  const { error } = await supabase.from('social_tiendas').insert({
     store_id: storeId,
     access_token: accessToken,
     scope,
@@ -84,8 +94,7 @@ async function guardarTienda(storeId, accessToken, scope) {
     posicion: 'bottom-left',
     velocidad_seg: 5,
     cantidad_mostrar: 20,
-  }, { onConflict: 'store_id', ignoreDuplicates: false });
-  // ignoreDuplicates false + upsert sin pisar trial/pago si ya existía:
+  });
   if (error) console.error('Error guardando tienda:', error);
 }
 
