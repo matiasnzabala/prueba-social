@@ -163,6 +163,36 @@ async function leerPedidosRecientes(storeId, cantidad) {
 }
 
 // ---------------------------------------------------------------------
+// Visualizadores activos — cada visitante en una ficha de producto manda
+// un heartbeat cada ~20s (upsert por store_id+handle+visitor_id). Contar
+// cuántos hay con last_seen reciente (últimos 45s) da "personas viendo
+// esto ahora" sin necesidad de websockets.
+// ---------------------------------------------------------------------
+const PRESENCIA_VENTANA_SEG = 45;
+
+async function registrarPresencia(storeId, handle, visitorId) {
+  const { error } = await supabase.from('social_presencia').upsert({
+    store_id: storeId,
+    handle,
+    visitor_id: visitorId,
+    last_seen: new Date().toISOString(),
+  }, { onConflict: 'store_id,handle,visitor_id' });
+  if (error) console.error('Error registrando presencia:', error);
+}
+
+async function contarVisualizadores(storeId, handle) {
+  const desde = new Date(Date.now() - PRESENCIA_VENTANA_SEG * 1000).toISOString();
+  const { count, error } = await supabase
+    .from('social_presencia')
+    .select('*', { count: 'exact', head: true })
+    .eq('store_id', storeId)
+    .eq('handle', handle)
+    .gte('last_seen', desde);
+  if (error) { console.error('Error contando visualizadores:', error); return 0; }
+  return count || 0;
+}
+
+// ---------------------------------------------------------------------
 // OAuth
 // ---------------------------------------------------------------------
 app.get('/callback', async (req, res) => {
@@ -259,7 +289,20 @@ app.get('/config/:storeId', async (req, res) => {
     posicion: tienda.posicion || 'bottom-left',
     velocidad_seg: tienda.velocidad_seg || 5,
     cantidad_mostrar: tienda.cantidad_mostrar || 20,
+    mostrar_visualizadores: tienda.mostrar_visualizadores !== false,
+    minimo_visualizadores: tienda.minimo_visualizadores || 2,
   });
+});
+
+// El widget de ficha de producto manda un heartbeat cada ~20s mientras el
+// visitante sigue en la página, y consulta el conteo actualizado.
+app.post('/presencia/:storeId', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const { handle, visitorId } = req.body || {};
+  if (!handle || !visitorId) return res.status(400).json({ error: 'faltan datos' });
+  await registrarPresencia(req.params.storeId, handle, visitorId);
+  const cantidad = await contarVisualizadores(req.params.storeId, handle);
+  res.json({ cantidad });
 });
 
 app.get('/pedidos/:storeId', async (req, res) => {
@@ -365,10 +408,75 @@ app.get('/widget.js', (req, res) => {
     contenedor.style.opacity = '1';
   }
 
+  // --- Visualizadores activos: badge "X personas viendo esto ahora"
+  // junto al botón de compra en la ficha del producto. ---
+  function handleActual() {
+    var m = window.location.pathname.match(/\\/producto\\/([^\\/?#]+)/);
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+
+  function visitorId() {
+    var key = 'prueba_social_visitor';
+    var id = localStorage.getItem(key);
+    if (!id) {
+      id = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem(key, id);
+    }
+    return id;
+  }
+
+  function buscarBotonCompra() {
+    var cand = document.querySelectorAll('button, a, div, input[type="submit"]');
+    var rx = /agregar al carrito|añadir al carrito|comprar ahora|comprar/i;
+    for (var i = 0; i < cand.length; i++) {
+      var txt = (cand[i].textContent || cand[i].value || '').trim();
+      if (txt.length > 0 && txt.length <= 40 && rx.test(txt)) return cand[i];
+    }
+    return null;
+  }
+
+  function iniciarVisualizadores(config) {
+    if (!config.mostrar_visualizadores) return;
+    var handle = handleActual();
+    if (!handle) return;
+    var boton = buscarBotonCompra();
+    if (!boton || !boton.parentNode) return;
+
+    var badge = document.createElement('div');
+    badge.style.cssText = 'display:none;align-items:center;gap:6px;margin:10px 0;font-family:sans-serif;' +
+      'font-size:0.85rem;color:#c2410c;font-weight:600;';
+    badge.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#f97316;display:inline-block;' +
+      'box-shadow:0 0 0 3px rgba(249,115,22,0.25);"></span><span id="prueba-social-visual-txt"></span>';
+    boton.parentNode.insertBefore(badge, boton);
+    var txt = badge.querySelector('#prueba-social-visual-txt');
+
+    var minimo = config.minimo_visualizadores || 2;
+    function actualizar() {
+      fetch(BASE + '/presencia/' + storeId, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ handle: handle, visitorId: visitorId() }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var cantidad = (data && data.cantidad) || 0;
+          if (cantidad >= minimo) {
+            txt.textContent = cantidad + ' persona' + (cantidad === 1 ? '' : 's') + ' viendo esto ahora';
+            badge.style.display = 'flex';
+          } else {
+            badge.style.display = 'none';
+          }
+        })
+        .catch(function () {});
+    }
+    actualizar();
+    setInterval(actualizar, 20000);
+  }
+
   fetch(BASE + '/config/' + storeId)
     .then(function (r) { return r.json(); })
     .then(function (config) {
       if (!config || !config.activo) return;
+      iniciarVisualizadores(config);
       fetch(BASE + '/pedidos/' + storeId)
         .then(function (r) { return r.json(); })
         .then(function (pedidos) {
@@ -429,12 +537,14 @@ app.post('/admin/:storeId/config', async (req, res) => {
   const tiendasPermitidas = leerTiendasDeCookie(req);
   if (!tiendasPermitidas.includes(storeId)) return res.status(403).send('No autorizado.');
 
-  const { activo, posicion, velocidad_seg, cantidad_mostrar } = req.body;
+  const { activo, posicion, velocidad_seg, cantidad_mostrar, mostrar_visualizadores, minimo_visualizadores } = req.body;
   await actualizarConfig(storeId, {
     activo: activo === 'on' || activo === true,
     posicion: posicion || 'bottom-left',
     velocidad_seg: Number(velocidad_seg) || 5,
     cantidad_mostrar: Number(cantidad_mostrar) || 20,
+    mostrar_visualizadores: mostrar_visualizadores === 'on' || mostrar_visualizadores === true,
+    minimo_visualizadores: Math.max(1, Number(minimo_visualizadores) || 2),
   });
   res.redirect(`/admin/${storeId}`);
 });
@@ -702,6 +812,20 @@ app.get('/admin/:storeId', async (req, res) => {
         <input type="number" id="velocidad_seg" name="velocidad_seg" min="2" max="60" value="${tienda.velocidad_seg || 5}" />
         <label for="cantidad_mostrar">Cantidad de pedidos a rotar</label>
         <input type="number" id="cantidad_mostrar" name="cantidad_mostrar" min="1" max="50" value="${tienda.cantidad_mostrar || 20}" />
+        <div class="actions">
+          <button type="submit" class="submit">Guardar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <label class="switch-wrap" style="margin-bottom:0;">
+          <input type="checkbox" name="mostrar_visualizadores" ${tienda.mostrar_visualizadores !== false ? 'checked' : ''} />
+          <span class="switch-track"></span>
+          <span class="switch-label">Mostrar "X personas viendo esto ahora"</span>
+        </label>
+        <p style="color:var(--ink-dim);font-size:0.85rem;margin-top:10px;">Badge junto al botón de compra en la ficha del producto, cuando hay varios visitantes viendo el mismo producto al mismo tiempo.</p>
+        <label for="minimo_visualizadores">Mostrar a partir de (mínimo de personas)</label>
+        <input type="number" id="minimo_visualizadores" name="minimo_visualizadores" min="1" max="20" value="${tienda.minimo_visualizadores || 2}" />
         <div class="actions">
           <button type="submit" class="submit">Guardar</button>
         </div>
