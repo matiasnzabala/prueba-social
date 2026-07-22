@@ -841,10 +841,6 @@ app.get('/admin/:storeId', async (req, res) => {
       <tbody>${filasPedidos}</tbody>
     </table>
 
-    <div class="install-card">
-      <p class="install-text">Pegá esto UNA VEZ en el código personalizado de tu tema (antes de <code>&lt;/body&gt;</code>):<br><br>
-      <code>&lt;script src="${APP_BASE_URL}/widget.js?store=${storeId}" defer&gt;&lt;/script&gt;</code></p>
-    </div>
     ${generarAppsHTML()}
 
     <div class="admin-footer">
