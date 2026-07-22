@@ -104,6 +104,30 @@ async function leerTienda(storeId) {
   return data || null;
 }
 
+async function suscribirWebhookBorrado(storeId, accessToken) {
+  try {
+    const resp = await fetch('https://developers.tiendanegocio.com/v1/webhooks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': accessToken,
+        'User-Agent': USER_AGENT,
+      },
+      body: JSON.stringify({ url: `${APP_BASE_URL}/webhooks/app-deleted`, event: 'app/deleted' }),
+    });
+    if (!resp.ok) console.error(`No se pudo suscribir webhook app/deleted para ${storeId}:`, await resp.text());
+  } catch (err) {
+    console.error(`Error suscribiendo webhook app/deleted para ${storeId}:`, err);
+  }
+}
+
+async function borrarDatosTienda(storeId) {
+  await supabase.from('social_pedidos').delete().eq('store_id', storeId);
+  await supabase.from('social_presencia').delete().eq('store_id', storeId);
+  await supabase.from('social_eventos').delete().eq('store_id', storeId);
+  await supabase.from('social_tiendas').delete().eq('store_id', storeId);
+}
+
 async function listarTiendas() {
   const { data, error } = await supabase.from('social_tiendas').select('*');
   if (error) {
@@ -224,6 +248,7 @@ app.get('/callback', async (req, res) => {
     const store_id = String(storeIdRaw); // TN lo manda como número, no string
 
     await guardarTienda(store_id, access_token, scope);
+    await suscribirWebhookBorrado(store_id, access_token);
     console.log(`✅ Tienda ${store_id} instaló Popup Ventas.`);
     agregarTiendaYSetearCookie(req, res, store_id);
     res.redirect(`/admin/${store_id}`);
@@ -235,6 +260,14 @@ app.get('/callback', async (req, res) => {
 
 app.get('/', (req, res) => {
   res.send('Popup Ventas backend funcionando ✅');
+});
+
+app.post('/webhooks/app-deleted', async (req, res) => {
+  const storeId = req.body?.store_id;
+  if (!storeId) return res.status(400).json({ error: 'Falta store_id' });
+  await borrarDatosTienda(String(storeId));
+  console.log(`🗑️ Datos de tienda ${storeId} borrados por webhook app/deleted.`);
+  res.status(200).json({ ok: true });
 });
 
 // ---------------------------------------------------------------------
